@@ -72,12 +72,20 @@ const OfflineView = {
   },
 
   showStoryMiniMap(mapId, coords) {
-    const map = L.map(mapId).setView(coords, 13);
-    L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", {
-      attribution: "&copy; OpenStreetMap contributors",
-    }).addTo(map);
+    const mapElement = document.getElementById(mapId);
+    if (!mapElement) return;
+    
+    try {
+      const map = L.map(mapId).setView(coords, 13);
+      L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", {
+        attribution: "&copy; OpenStreetMap contributors",
+      }).addTo(map);
 
-    L.marker(coords).addTo(map);
+      L.marker(coords).addTo(map);
+    } catch (error) {
+      console.error(`❌ Error initializing map for ${mapId}:`, error);
+      mapElement.innerHTML = '<p class="error-message">Gagal memuat peta</p>';
+    }
   },
 
   showError(message) {

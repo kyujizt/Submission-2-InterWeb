@@ -4,7 +4,9 @@ import { getStories, deleteStory } from '../../utils/indexDB';
 export default class OfflinePage {
   constructor() {
     console.log('📱 OfflinePage initialized');
+    this.stories = [];
   }
+  
   async render() {
     return `
       <div class="skip-container">
@@ -25,19 +27,22 @@ export default class OfflinePage {
   async afterRender() {
     try {
       console.log('🔄 Loading offline stories...');
-      const stories = await getStories();
-      OfflineView.showOfflineStories(stories);
+      await this._loadStories();
       
       // Setup skip to content
       OfflineView.setupSkipToContent();
       
-      // Setup delete buttons
-      this._initializeDeleteButtons();
       console.log('✅ Offline stories loaded successfully');
     } catch (error) {
       console.error('❌ Error loading offline stories:', error);
       OfflineView.showError('Gagal memuat cerita offline');
     }
+  }
+
+  async _loadStories() {
+    this.stories = await getStories();
+    OfflineView.showOfflineStories(this.stories);
+    this._initializeDeleteButtons();
   }
 
   _initializeDeleteButtons() {
@@ -49,12 +54,17 @@ export default class OfflinePage {
         
         try {
           console.log(`🗑 Deleting story with ID: ${storyId}`);
-          await deleteStory(storyId);
+          const success = await deleteStory(storyId);
           
-          // Refresh the stories list
-          const stories = await getStories();
-          OfflineView.showOfflineStories(stories);
-          console.log('✅ Story deleted and list refreshed');
+          if (success) {
+            // Update the stories list without refreshing the page
+            this.stories = this.stories.filter(story => story.id !== storyId);
+            OfflineView.showOfflineStories(this.stories);
+            this._initializeDeleteButtons(); // Re-initialize delete buttons
+            console.log('✅ Story deleted and list refreshed');
+          } else {
+            throw new Error('Failed to delete story');
+          }
         } catch (error) {
           console.error('❌ Error deleting story:', error);
           OfflineView.showError('Gagal menghapus cerita');

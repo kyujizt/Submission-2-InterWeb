@@ -55,7 +55,6 @@ const HomeView = {
     <!-- Tambahkan tombol di sini -->
     <div class="story-actions">
       <button class="save-btn" data-id="${story.id}">💾 Simpan Offline</button>
-      <button class="delete-btn" data-id="${story.id}">🗑 Hapus</button>
     </div>
   </div>
 `;
