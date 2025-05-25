@@ -48,6 +48,18 @@ header {
   align-items: center;
 }
 
+.header-actions {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 20px;
+}
+
+.header-actions h1 {
+  margin: 0;
+}
+
+
 /* Brand Name dengan target sentuh minimal */
 .brand-name {
   font-size: 1.5rem;
@@ -670,4 +682,3 @@ header {
   border-radius: 5px;
   z-index: 9999;
 }
-
