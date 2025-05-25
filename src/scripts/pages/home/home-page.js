@@ -1,8 +1,6 @@
 import HomePresenter from "../../presenter/home-presenter.js";
 import HomeView from "./home-view.js";
-
-import { requestNotificationPermission, subscribeUserToPush } from "../../utils/push-helper.js";
-import { sendSubscription } from "../../data/api.js";
+import { registerServiceWorker } from "../../utils/push-helper.js";
 
 export default class HomePage {
   constructor() {
@@ -20,7 +18,9 @@ export default class HomePage {
       
       <main id="main-content" tabindex="-1">
         <section class="container">
-          <h1>Daftar Cerita</h1>
+          <div class="header-actions">
+            <h1>Daftar Cerita</h1>
+          </div>
           <div class="story-list" id="story-list">
             <p>Memuat cerita...</p>
           </div>
@@ -33,6 +33,11 @@ export default class HomePage {
   async afterRender() {
     try {
       console.log("🔄 Memulai inisialisasi halaman...");
+      
+      // Register service worker for notifications
+      await registerServiceWorker();
+      
+      // Initialize presenter
       await this.presenter.init();
 
       // Ambil data cerita
@@ -62,26 +67,9 @@ export default class HomePage {
           }
         });
       });
-
-      // 🔔 Setup push notification
-      try {
-        const registration = await navigator.serviceWorker.ready;
-        await requestNotificationPermission();
-
-        let subscription = await registration.pushManager.getSubscription();
-
-        if (!subscription) {
-          subscription = await subscribeUserToPush(registration);
-          await sendSubscription(subscription);
-          console.log("✅ Subscription berhasil dikirim ke server.");
-        } else {
-          console.log("ℹ️ Sudah ada subscription:", subscription);
-        }
-      } catch (pushError) {
-        console.warn("⚠️ Gagal mengaktifkan push notification:", pushError.message);
-      }
     } catch (error) {
       console.error("❌ Error pada afterRender:", error.message);
+      HomeView.showError("Terjadi kesalahan saat memuat halaman. Silakan coba lagi.");
     }
   }
 }

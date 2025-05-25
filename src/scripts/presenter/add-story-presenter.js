@@ -1,6 +1,14 @@
-import { addStory, sendSubscription, getVapidPublicKey, sendPushNotification, removeSubscription } from "../data/api";
-
+import { addStory } from "../data/api";
 import AddStoryView from "../pages/add-story/add-story-view";
+import { 
+  registerServiceWorker, 
+  isUserSubscribed, 
+  requestNotificationPermission,
+  subscribeUserToPush,
+  unsubscribeUserFromPush,
+  simulatePushNotification,
+  updateNotifButton
+} from "../utils/push-helper.js";
 
 export default class AddStoryPresenter {
   constructor() {
@@ -35,6 +43,7 @@ export default class AddStoryPresenter {
     await this._setupPushNotifications();
     AddStoryView.setupPushNotificationButton(() => this._handleNotifToggle());
   }
+
   async _handleSubmit(description, file) {
     const imageFile = file || this.cameraImageBlob;
     if (!imageFile) {
@@ -52,18 +61,18 @@ export default class AddStoryPresenter {
         throw new Error(result.error);
       }
 
-      // Kirim push notification
+      // Kirim push notification - using simulation instead of server
       try {
-        const notifPayload = {
-          title: "Story Baru Ditambahkan!",
-          body: description.substring(0, 100) + (description.length > 100 ? "..." : ""),
-          location: this.selectedLatLng,
-          storyId: result.id,
-          description
-        };
-
-        await sendPushNotification(notifPayload);
-        console.log("✅ Push notification berhasil dikirim");
+        // Check if notifications are supported and subscribed
+        if ("Notification" in window && Notification.permission === "granted") {
+          // Create notification content
+          const notifTitle = "Story Baru Ditambahkan!";
+          const notifBody = description.substring(0, 100) + (description.length > 100 ? "..." : "");
+          
+          // Use simulatePushNotification to show notification without server
+          await simulatePushNotification(notifTitle, notifBody);
+          console.log("✅ Push notification berhasil dikirim");
+        }
       } catch (notifError) {
         console.warn("⚠️ Gagal mengirim push notification:", notifError);
         // Lanjutkan proses meskipun notifikasi gagal
@@ -95,11 +104,17 @@ export default class AddStoryPresenter {
     }
 
     try {
-      this.registration = await navigator.serviceWorker.register("/src/public/sw.js");
+      // Use the registerServiceWorker function from push-helper.js
+      this.registration = await registerServiceWorker();
+      
+      if (!this.registration) {
+        throw new Error("Gagal mendaftarkan service worker");
+      }
+      
       console.log("✅ Service Worker terdaftar:", this.registration.scope);
-
-      const subscription = await this.registration.pushManager.getSubscription();
-      this.isSubscribed = !!subscription;
+      
+      // Check if already subscribed
+      this.isSubscribed = await isUserSubscribed();
       AddStoryView.updateNotifButton(this.isSubscribed);
     } catch (error) {
       console.error("❌ Gagal setup notifikasi:", error);
@@ -108,63 +123,47 @@ export default class AddStoryPresenter {
 
   async _handleNotifToggle() {
     const btn = document.getElementById("notif-btn");
+    if (!btn) return;
+    
     btn.disabled = true;
 
     try {
-      if (!this.registration) {
-        this.registration = await navigator.serviceWorker.ready;
-      }
-
-      const subscription = await this.registration.pushManager.getSubscription();
-
       if (this.isSubscribed) {
         console.log("🔕 Proses Unsubscribe dimulai...");
-        if (subscription) {
-          await subscription.unsubscribe();
-          console.log("✅ Berhasil unsubscribe dari push notification.");
-
-          // 🔥 Hapus subscription dari server
-          await removeSubscription(subscription);
-        }
+        await unsubscribeUserFromPush();
         this.isSubscribed = false;
+        
+        // Show confirmation notification
+        simulatePushNotification(
+          'Notifikasi Dinonaktifkan',
+          'Anda telah menonaktifkan notifikasi Story App'
+        );
       } else {
         console.log("🔔 Proses Subscribe dimulai...");
-        const permission = await Notification.requestPermission();
-        if (permission !== "granted") {
+        const permissionGranted = await requestNotificationPermission();
+        
+        if (!permissionGranted) {
           AddStoryView.showAlert("Izin notifikasi ditolak.");
           return;
         }
-
-        const vapidPublicKey = await getVapidPublicKey();
-        const convertedKey = this._urlBase64ToUint8Array(vapidPublicKey);
-
-        const newSubscription = await this.registration.pushManager.subscribe({
-          userVisibleOnly: true,
-          applicationServerKey: convertedKey,
-        });
-
-        await sendSubscription(newSubscription);
-        console.log("✅ Subscription berhasil.");
+        
+        await subscribeUserToPush();
         this.isSubscribed = true;
+        
+        // Show welcome notification
+        simulatePushNotification(
+          'Notifikasi Diaktifkan',
+          'Anda akan menerima notifikasi saat ada cerita baru'
+        );
       }
 
-      // 🔥 Pastikan tombol diperbarui dengan status terbaru
+      // Update button state
       AddStoryView.updateNotifButton(this.isSubscribed);
     } catch (error) {
       console.error("❌ Gagal toggle notifikasi:", error);
+      AddStoryView.showAlert(`Gagal ${this.isSubscribed ? 'menonaktifkan' : 'mengaktifkan'} notifikasi: ${error.message}`);
     } finally {
       btn.disabled = false;
     }
-  }
-
-  _urlBase64ToUint8Array(base64String) {
-    const padding = "=".repeat((4 - (base64String.length % 4)) % 4);
-    const base64 = (base64String + padding).replace(/-/g, "+").replace(/_/g, "/");
-    const rawData = window.atob(base64);
-    const outputArray = new Uint8Array(rawData.length);
-    for (let i = 0; i < rawData.length; ++i) {
-      outputArray[i] = rawData.charCodeAt(i);
-    }
-    return outputArray;
   }
 }

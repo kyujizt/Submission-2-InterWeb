@@ -1,4 +1,9 @@
 importScripts("https://storage.googleapis.com/workbox-cdn/releases/6.5.4/workbox-sw.js");
+/**
+ * Service Worker configuration for the Story App.
+ * @module ServiceWorker
+ * @version 1.0
+ */
 
 const { precaching, routing, strategies } = workbox;
 
@@ -37,7 +42,7 @@ routing.registerRoute(
 
 // ✅ 🔥 **Tambahkan caching untuk API stories**
 routing.registerRoute(
-  ({ url }) => url.pathname.startsWith("/v1/stories"), // 🔍 Pastikan path sesuai dengan API yang digunakan
+  ({ url }) => url.href.includes("/v1/stories"),
   new strategies.StaleWhileRevalidate({
     cacheName: "story-app-api",
     plugins: [
@@ -74,17 +79,24 @@ self.addEventListener("fetch", (event) => {
 // ================= PUSH NOTIFICATION ============
 self.addEventListener("push", (event) => {
   let notificationData = {
-    title: "Notification",
+    title: "Story App Notification",
     options: {
-      body: "This is a push notification",
+      body: "Ada pembaruan dari Story App!",
       icon: "/favicon.png",
-      image: "/favicon.png",
+      image: "/images/logo.png",
       badge: "/favicon.png",
+      data: {
+        url: "/"
+      }
     },
   };
 
   if (event.data) {
-    notificationData = JSON.parse(event.data.text());
+    try {
+      notificationData = JSON.parse(event.data.text());
+    } catch (error) {
+      console.error('Error parsing notification data:', error);
+    }
   }
 
   const showNotification = self.registration.showNotification(
@@ -112,4 +124,20 @@ self.addEventListener("notificationclick", (event) => {
       }
     })
   );
+});
+
+// Custom message handler for simulating notifications
+self.addEventListener('message', (event) => {
+  if (event.data && event.data.type === 'SHOW_NOTIFICATION') {
+    const { title, body, url } = event.data;
+    
+    self.registration.showNotification(title, {
+      body: body,
+      icon: "/favicon.png",
+      badge: "/favicon.png",
+      data: {
+        url: url || '/'
+      }
+    });
+  }
 });
