@@ -113,7 +113,7 @@ export async function subscribeUserToPush() {
     // Simulate a welcome notification
     simulatePushNotification(
       'Notifikasi Diaktifkan',
-      'Anda akan menerima notifikasi saat ada cerita baru'
+      'Anda akan menerima notifikasi saat membuat cerita baru'
     );
     
     return subscription;

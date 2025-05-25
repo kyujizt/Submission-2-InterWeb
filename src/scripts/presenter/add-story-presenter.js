@@ -153,7 +153,7 @@ export default class AddStoryPresenter {
         // Show welcome notification
         simulatePushNotification(
           'Notifikasi Diaktifkan',
-          'Anda akan menerima notifikasi saat ada cerita baru'
+          'Anda akan menerima notifikasi saat membuat cerita baru'
         );
       }
 
