@@ -27,9 +27,7 @@
     "webpack-merge": "^6.0.1"
   },
   "dependencies": {
-    "cors": "^2.8.5",
     "idb": "^8.0.3",
-    "leaflet": "^1.9.4",
-    "web-push": "^3.6.7"
+    "leaflet": "^1.9.4"
   }
 }

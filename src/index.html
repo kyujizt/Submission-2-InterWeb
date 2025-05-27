@@ -3,10 +3,12 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta name="description" content="Aplikasi berbagi cerita dengan fitur PWA" />
+    <meta name="theme-color" content="#3498db" />
     <title>App Story - Aziz Ilmawan</title>
     <link rel="manifest" href="/manifest.json" />
-    <link rel="apple-touch-icon" href="/public/images/icons/icon-192x192.png" />
-    <link rel="shortcut icon" href="/public/favicon.png" />
+    <link rel="apple-touch-icon" href="/images/icons/icon-192x192.png" />
+    <link rel="shortcut icon" href="/favicon.png" />
     <link rel="stylesheet" href="https://unpkg.com/leaflet@1.7.1/dist/leaflet.css" />
     <link rel="stylesheet" href="styles.css" />
   </head>
@@ -40,18 +42,6 @@
     <!-- Script utama SPA -->
     <script src="app.js"></script>
     <script type="module" src="push-helper.js"></script>
-
-    <!-- ✅ Service Worker -->
-    <script>
-      if ("serviceWorker" in navigator) {
-        window.addEventListener("load", () => {
-          navigator.serviceWorker
-            .register("/src/public/sw.js")
-            .then((reg) => console.log("✅ Service Worker terdaftar:", reg))
-            .catch((err) => console.error("❌ Gagal mendaftar Service Worker:", err));
-        });
-      }
-    </script>
 
     <!-- ✅ Script Navigasi & Skip -->
     <script>

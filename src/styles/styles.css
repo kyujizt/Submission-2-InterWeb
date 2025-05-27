@@ -643,24 +643,32 @@ header {
   background-color: #353232;
   color: white;
   border: none;
+  padding: 8px 16px;
   border-radius: 4px;
-  padding: 0.5rem 1rem;
-  font-weight: bold;
   cursor: pointer;
-  min-width: 44px;
-  min-height: 44px;
-  line-height: 1.2;
-  transition: background-color 0.3s ease, color 0.3s ease;
-  /* agar sejajar dengan nav link */
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
+  font-size: 14px;
+  transition: background-color 0.3s ease;
+  margin-left: 16px;
 }
 
-#notif-btn:hover,
-#notif-btn:focus {
-  background-color: #44475a;
-  outline: none;
+#notif-btn:hover {
+  background-color: #422c08;
+}
+
+#notif-btn:disabled {
+  background-color: #bdc3c7;
+  cursor: not-allowed;
+}
+
+#notif-btn:active {
+  transform: scale(0.98);
+}
+
+@media screen and (max-width: 768px) {
+  #notif-btn {
+    margin: 8px 0;
+    width: 100%;
+  }
 }
 
 .story-item {

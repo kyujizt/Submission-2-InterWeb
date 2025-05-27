@@ -1,14 +1,11 @@
 import CONFIG from "../config";
-import { simulatePushNotification, isUserSubscribed } from "../utils/push-helper.js";
+import { simulatePushNotification, isSubscribedToPushNotification } from "../utils/push-helper.js";
 
 const ENDPOINTS = {
   STORIES: `${CONFIG.BASE_URL}/stories`,
   LOGIN: `${CONFIG.BASE_URL}/login`,
   REGISTER: `${CONFIG.BASE_URL}/register`,
-  VAPID_KEY: CONFIG.PUSH_MSG_VAPID_URL,
-  SUBSCRIBE: CONFIG.PUSH_MSG_SUBSCRIBE_URL,
-  UNSUBSCRIBE: CONFIG.PUSH_MSG_UNSUBSCRIBE_URL,
-  BROADCAST: CONFIG.PUSH_MSG_BROADCAST_URL
+  BROADCAST: `${CONFIG.BASE_URL}/push-notif/broadcast`
 };
 
 function getAuthToken() {
@@ -159,7 +156,7 @@ export async function addStory({ description, imageFile, location }) {
     
     // Check if user is subscribed before showing notification
     try {
-      const isSubscribed = await isUserSubscribed();
+      const isSubscribed = await isSubscribedToPushNotification();
       if (isSubscribed) {
         await simulatePushNotification(
           "Story Baru Telah Dibuat!",
@@ -180,126 +177,10 @@ export async function addStory({ description, imageFile, location }) {
   }
 }
 
-// Simplified version that returns a hardcoded VAPID key
-export async function getVapidPublicKey() {
-  try {
-    // Try to fetch from server first
-    try {
-      const response = await fetch(CONFIG.PUSH_MSG_VAPID_URL);
-      const data = await response.json();
-      return data.key;
-    } catch (fetchError) {
-      console.warn('⚠️ Could not fetch VAPID key from server, using fallback:', fetchError);
-      // Fallback to hardcoded key
-      return 'BCCs2eonMI-6H2ctvFaWg-UYdDv387Vno_bzUzALpB442r2lCnsHmtrx8biyPi_E-1fSGABK_Qs_GlvPoJJqxbk';
-    }
-  } catch (error) {
-    console.error('❌ Error getVapidPublicKey:', error);
-    throw error;
-  }
-}
-
-// Simplified version that stores subscription in localStorage
-export async function sendSubscription(subscription) {
-  try {
-    if (!subscription || typeof subscription !== "object") {
-      throw new Error("Subscription tidak valid.");
-    }
-
-    // Store in localStorage for demo purposes
-    localStorage.setItem('pushSubscription', JSON.stringify(subscription));
-    console.log("✅ Subscription disimpan di localStorage");
-    
-    // Try to send to server if online
-    if (navigator.onLine) {
-      try {
-        const token = getAuthToken();
-        const response = await fetch(ENDPOINTS.SUBSCRIBE, {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-            Authorization: `Bearer ${token}`,
-          },
-          body: JSON.stringify(subscription),
-        });
-        
-        validateResponse(response);
-        console.log("✅ Subscription berhasil dikirim ke server");
-        return await response.json();
-      } catch (serverError) {
-        console.warn("⚠️ Gagal mengirim subscription ke server:", serverError.message);
-        // Return success anyway since we stored it locally
-        return { success: true, message: "Subscription disimpan secara lokal" };
-      }
-    } else {
-      return { success: true, message: "Browser offline, subscription disimpan secara lokal" };
-    }
-  } catch (error) {
-    console.error("❌ Error sendSubscription:", error.message);
-    throw error;
-  }
-}
-
-// Simplified version that removes subscription from localStorage
-export async function removeSubscription(subscription) {
-  try {
-    if (!subscription || typeof subscription !== "object") {
-      throw new Error("❌ Subscription tidak valid untuk dihapus.");
-    }
-
-    console.log("🔍 Subscription sebelum dihapus:", subscription);
-
-    // Remove from browser
-    if (subscription.unsubscribe) {
-      await subscription.unsubscribe();
-      console.log("✅ Subscription berhasil dihapus dari browser.");
-    }
-    
-    // Remove from localStorage
-    localStorage.removeItem('pushSubscription');
-    console.log("✅ Subscription berhasil dihapus dari localStorage.");
-
-    // Try to remove from server if online
-    if (navigator.onLine) {
-      try {
-        const token = getAuthToken();
-        const response = await fetch(ENDPOINTS.UNSUBSCRIBE, {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-            Authorization: `Bearer ${token}`,
-          },
-          body: JSON.stringify({ endpoint: subscription.endpoint }),
-        });
-
-        validateResponse(response);
-        const result = await response.json();
-
-        if (result.success) {
-          console.log("✅ Subscription berhasil dihapus dari server.");
-        } else {
-          console.warn("⚠️ Server gagal menghapus subscription.");
-        }
-        
-        return result;
-      } catch (serverError) {
-        console.warn("⚠️ Gagal menghapus subscription dari server:", serverError.message);
-        // Return success anyway since we removed it locally
-        return { success: true, message: "Subscription dihapus secara lokal" };
-      }
-    } else {
-      return { success: true, message: "Browser offline, subscription dihapus secara lokal" };
-    }
-  } catch (error) {
-    console.error("❌ Gagal menghapus subscription:", error.message);
-    throw error;
-  }
-}
-
 export async function sendPushNotification({ title, body, location, storyId, description }) {
   try {
     // Check if user is subscribed before sending notification
-    const isSubscribed = await isUserSubscribed();
+    const isSubscribed = await isSubscribedToPushNotification();
     if (!isSubscribed) {
       console.log("ℹ️ Push notification tidak dikirim karena pengguna tidak berlangganan");
       return { success: false, message: "User not subscribed" };

@@ -81,21 +81,54 @@ self.addEventListener("push", (event) => {
   let notificationData = {
     title: "Story App Notification",
     options: {
-      body: "Ada pembaruan dari Story App!",
+      body: "Ada story baru telah ditambahkan!",
       icon: "/favicon.png",
-      image: "/images/logo.png",
       badge: "/favicon.png",
+      image: "/images/logo.png",
+      vibrate: [200, 100, 200],
+      tag: "story-notification",
+      renotify: true,
+      silent: false,
+      requireInteraction: true,
       data: {
-        url: "/"
+        url: "/",
+        dateOfArrival: Date.now(),
+        primaryKey: Math.random().toString() // Unique ID for each notification
       }
     },
   };
-
   if (event.data) {
     try {
-      notificationData = JSON.parse(event.data.text());
+      const payload = event.data.json();
+      const now = new Date();
+      
+      notificationData = {
+        title: payload.title || notificationData.title,
+        options: {
+          ...notificationData.options,
+          body: payload.message || payload.body || notificationData.options.body,
+          data: {
+            url: payload.url || payload.options?.data?.url || '/',
+            dateOfArrival: now.toISOString(),
+            storyId: payload.options?.data?.storyId,
+            description: payload.options?.data?.description,
+            location: payload.options?.data?.location
+          },
+          timestamp: now.getTime(), // Add timestamp for sorting
+          // Add actions if we have a story ID
+          ...(payload.options?.data?.storyId && {
+            actions: [
+              {
+                action: 'view-story',
+                title: 'Lihat Story'
+              }
+            ]
+          })
+        }
+      };
     } catch (error) {
       console.error('Error parsing notification data:', error);
+      // Still show notification with default data if parsing fails
     }
   }
 
@@ -110,8 +143,16 @@ self.addEventListener("push", (event) => {
 // =============== HANDLE NOTIF CLICK ============
 self.addEventListener("notificationclick", (event) => {
   event.notification.close();
-  const url = event.notification?.data?.url || "/";
 
+  // Handle notification action clicks
+  let url = '/';
+  if (event.action === 'view-story' && event.notification.data.storyId) {
+    url = `/story/${event.notification.data.storyId}`;
+  } else {
+    url = event.notification.data.url || '/';
+  }
+
+  // Focus or open window
   event.waitUntil(
     clients.matchAll({ type: "window", includeUncontrolled: true }).then((clientList) => {
       for (const client of clientList) {
